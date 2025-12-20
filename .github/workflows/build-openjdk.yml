@@ -80,7 +80,9 @@ jobs:
           name: libjvm-device
           path: |
             mobile/build/ios-aarch64-zero-release/images/static-libs/lib
-            mobile/build/ios-aarch64-zero-release/images/static-libs/conf
+            mobile/build/ios-aarch64-zero-release/jdk/conf
+            mobile/build/ios-aarch64-zero-release/jdk/include
+
 
       - name: Upload java
         uses: actions/upload-artifact@v4

@@ -5,18 +5,23 @@ set -euxo pipefail
 DEVICE_TARGET=./device-static
 SIMULATOR_TARGET=./sim-static
 
-# 2. LOCATE THE INPUT FOLDERS (The Fix)
-# We use 'find' to locate where 'libjava.a' actually is inside the artifacts.
-# This works regardless of how many folders GitHub nested them in.
 DEVICE_LIB_DIR=$(find ./device -name "libjava.a" | head -n 1 | xargs dirname)
 SIM_LIB_DIR=$(find ./simulator -name "libjava.a" | head -n 1 | xargs dirname)
-# Also find the 'include' directory (look for jni.h)
+
+# Find jni.h to locate the include folder
 DEVICE_INCLUDE_DIR=$(find ./device -name "jni.h" | head -n 1 | xargs dirname)
 SIM_INCLUDE_DIR=$(find ./simulator -name "jni.h" | head -n 1 | xargs dirname)
 
-echo "--- Auto-detected Paths ---"
-echo "Device Libs: $DEVICE_LIB_DIR"
-echo "Sim Libs:    $SIM_LIB_DIR"
+# Check if we found them
+if [ -z "$DEVICE_INCLUDE_DIR" ]; then
+  echo "ERROR: Could not find jni.h in ./device artifact!"
+  exit 1
+fi
+
+echo "--- Paths ---"
+echo "Dev Libs: $DEVICE_LIB_DIR"
+echo "Sim Libs: $SIM_LIB_DIR"
+echo "Dev Inc:  $DEVICE_INCLUDE_DIR"
 
 # 3. Create device static
 mkdir -p $DEVICE_TARGET

@@ -68,7 +68,8 @@ jobs:
           name: libjvm-simulator
           path: |
             mobile/build/iossim-aarch64-zero-release/images/static-libs/lib
-            mobile/build/iossim-aarch64-zero-release/images/static-libs/conf
+            mobile/build/iossim-aarch64-zero-release/jdk/conf
+            mobile/build/iossim-aarch64-zero-release/jdk/include
 
       - name: Upload java
         uses: actions/upload-artifact@v4
