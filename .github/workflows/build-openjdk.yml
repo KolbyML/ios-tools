@@ -79,17 +79,12 @@ jobs:
         with:
           name: libjvm-device
           path: |
-            mobile/build/ios-aarch64-zero-release/images/static-libs/lib/zero/libjvm.a
-            mobile/build/ios-aarch64-zero-release/images/static-libs/lib/libjava.a
-            mobile/build/ios-aarch64-zero-release/images/static-libs/lib/libjimage.a
-            mobile/build/ios-aarch64-zero-release/images/static-libs/lib/libnet.a
-            mobile/build/ios-aarch64-zero-release/images/static-libs/lib/libnio.a
-            mobile/build/ios-aarch64-zero-release/images/static-libs/lib/libzip.a
-            mobile/build/ios-aarch64-zero-release/jdk/include
+            mobile/build/ios-aarch64-zero-release/images/static-libs/lib
+            mobile/build/ios-aarch64-zero-release/images/static-libs/conf
 
-      - name: Upload java.base
+      - name: Upload java
         uses: actions/upload-artifact@v4
         with:
-          name: java.base-device
+          name: java.device
           path: |
-            mobile/build/ios-aarch64-zero-release/jdk/modules/java.base
+            mobile/build/ios-aarch64-zero-release/jdk/modules
