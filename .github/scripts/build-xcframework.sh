@@ -1,19 +1,29 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-# Define constants
-LIBFFI=./libffi-ios
-LIBFFI_SIM=./libffi-ios-sim
-OPENJDK_DEVICE_BUILD=./device/mobile/build/ios-aarch64-zero-release
-OPENJDK_SIMULATOR_BUILD=./simulator/mobile/build/iossim-aarch64-zero-release
+# 1. Define Static Targets
 DEVICE_TARGET=./device-static
 SIMULATOR_TARGET=./sim-static
 
-# Create device static
-mkdir $DEVICE_TARGET
-cp $LIBFFI/libffi.a $DEVICE_TARGET
-cp $OPENJDK_DEVICE_BUILD/images/static-libs/lib/*.a $DEVICE_TARGET
-cp $OPENJDK_DEVICE_BUILD/images/static-libs/lib/zero/libjvm.a $DEVICE_TARGET
+# 2. LOCATE THE INPUT FOLDERS (The Fix)
+# We use 'find' to locate where 'libjava.a' actually is inside the artifacts.
+# This works regardless of how many folders GitHub nested them in.
+DEVICE_LIB_DIR=$(find ./device -name "libjava.a" | head -n 1 | xargs dirname)
+SIM_LIB_DIR=$(find ./simulator -name "libjava.a" | head -n 1 | xargs dirname)
+# Also find the 'include' directory (look for jni.h)
+DEVICE_INCLUDE_DIR=$(find ./device -name "jni.h" | head -n 1 | xargs dirname)
+SIM_INCLUDE_DIR=$(find ./simulator -name "jni.h" | head -n 1 | xargs dirname)
+
+echo "--- Auto-detected Paths ---"
+echo "Device Libs: $DEVICE_LIB_DIR"
+echo "Sim Libs:    $SIM_LIB_DIR"
+
+# 3. Create device static
+mkdir -p $DEVICE_TARGET
+cp ./libffi-ios/libffi.a $DEVICE_TARGET
+cp "$DEVICE_LIB_DIR"/*.a $DEVICE_TARGET
+cp "$DEVICE_LIB_DIR"/zero/libjvm.a $DEVICE_TARGET
+
 cd $DEVICE_TARGET
 libtool -static -o libdevice.a \
     libjvm.a libffi.a \
@@ -36,11 +46,12 @@ libtool -static -o libdevice.a \
     libjdk.net.a
 cd ..
 
-# Create sim static
-mkdir $SIMULATOR_TARGET
-cp $LIBFFI_SIM/libffi.a $SIMULATOR_TARGET
-cp $OPENJDK_SIMULATOR_BUILD/images/static-libs/lib/*.a $SIMULATOR_TARGET
-cp $OPENJDK_SIMULATOR_BUILD/images/static-libs/lib/zero/libjvm.a $SIMULATOR_TARGET
+# 4. Create sim static
+mkdir -p $SIMULATOR_TARGET
+cp ./libffi-ios-sim/libffi.a $SIMULATOR_TARGET
+cp "$SIM_LIB_DIR"/*.a $SIMULATOR_TARGET
+cp "$SIM_LIB_DIR"/zero/libjvm.a $SIMULATOR_TARGET
+
 cd $SIMULATOR_TARGET
 libtool -static -o libsim.a \
     libjvm.a libffi.a \
@@ -63,14 +74,10 @@ libtool -static -o libsim.a \
     libjdk.net.a
 cd ..
 
-# Flatten header location
-cp $OPENJDK_DEVICE_BUILD/jdk/include/ios/* $OPENJDK_DEVICE_BUILD/jdk/include/
-cp $OPENJDK_SIMULATOR_BUILD/jdk/include/ios/* $OPENJDK_SIMULATOR_BUILD/jdk/include/
-
-# Create XCFramework
+# 5. Create XCFramework
 xcodebuild -create-xcframework \
   -library $DEVICE_TARGET/libdevice.a \
-  -headers $OPENJDK_DEVICE_BUILD/jdk/include \
+  -headers "$DEVICE_INCLUDE_DIR" \
   -library $SIMULATOR_TARGET/libsim.a \
-  -headers $OPENJDK_SIMULATOR_BUILD/jdk/include \
+  -headers "$SIM_INCLUDE_DIR" \
   -output ./OpenJDK.xcframework
