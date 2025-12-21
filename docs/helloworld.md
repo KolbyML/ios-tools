@@ -130,12 +130,12 @@ Or if you choose to build ffi, follow [these steps](https://github.com/openjdk-m
 
 #### Build openjdk/mobile
 
-Follow the instructions at https://github.com/openjdk/mobile/ to build a static image for iOS.
+Follow the instructions at https://github.com/kolbyml/mobile/ to build a static image for iOS.
 
 With JDK 24:
 
 ```sh
-git clone https://github.com/openjdk/mobile/
+git clone https://github.com/kolbyml/mobile/
 cd mobile
 sh configure \                                                                                                                      
     --disable-warnings-as-errors \
