@@ -44,6 +44,7 @@ libtool -static -o libdevice.a \
     libjvm.a \
     libffi.a \
     libjava.a \
+    libjli.a \
     libzip.a \
     libnet.a \
     libnio.a \
@@ -71,6 +72,7 @@ libtool -static -o libsim.a \
     libjvm.a \
     libffi.a \
     libjava.a \
+    libjli.a \
     libzip.a \
     libnet.a \
     libnio.a \
