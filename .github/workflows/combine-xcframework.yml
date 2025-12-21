@@ -57,12 +57,17 @@ jobs:
       - name: Compress XCFramework and java.base module
         run: |
           zip -r OpenJDK.xcframework.zip OpenJDK.xcframework
-          cd device/mobile/build/ios-aarch64-zero-release/images/static-libs
-          zip -r ../../../../../../../java.device.zip . 
-          cd ../../../../../../../
-          cd simulator/mobile/build/ios-aarch64-zero-release/images/static-libs
-          zip -r ../../../../../../../java.simulator.zip . 
-          cd ../../../../../../../
+          # 2. Zip the Device Home (contains lib, conf, include)
+          # We zip the CONTENT of the './device' folder
+          cd device
+          zip -r ../java.device.zip . 
+          cd ..
+          
+          # 3. Zip the Simulator Home
+          # We zip the CONTENT of the './simulator' folder
+          cd simulator
+          zip -r ../java.simulator.zip . 
+          cd ..
 
       - name: Upload XCFramework and java.base module
         uses: actions/upload-artifact@v4
