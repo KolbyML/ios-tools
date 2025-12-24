@@ -5,19 +5,17 @@ on:
 
 jobs:
   build-host:
-    runs-on: macos-14 # Uses Apple Silicon runner
+    runs-on: macos-14
 
     steps:
       - name: Install dependencies
         run: |
           brew install autoconf make
-          # Add GNU make to path
           echo '/usr/local/opt/make/libexec/gnubin' >> $GITHUB_PATH
 
       - name: Checkout source
         uses: actions/checkout@v4
 
-      # We need a Boot JDK (Java 25) to build the new Java 27
       - name: Set up Boot JDK 25
         uses: actions/setup-java@v4
         with:
@@ -27,9 +25,8 @@ jobs:
       - name: Clone OpenJDK Mobile sources
         run: |
           git clone https://github.com/kolbyml/mobile.git
-          
           # NOTE: We intentionally DO NOT copy symbol_keeper.cpp here.
-          # It is only for the static iOS builds and causes linker errors on macOS.
+          # It breaks the macOS dynamic build.
           
           cd mobile
           git checkout master

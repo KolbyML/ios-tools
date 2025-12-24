@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Trigger all 3 builds in parallel
+  # 1. Trigger parallel builds
   build-openjdk:
     uses: ./.github/workflows/build-openjdk.yml
 
@@ -14,6 +14,7 @@ jobs:
   build-host-jdk:
     uses: ./.github/workflows/build-host-jdk.yml
 
+  # 2. Combine them
   combine:
     needs: [ build-openjdk, build-openjdk-sim, build-host-jdk ]
     runs-on: macos-latest
@@ -29,11 +30,11 @@ jobs:
           name: host-jdk
           path: ./host-jdk
 
-      - name: Download Device JMODs
+      - name: Download Device Java (Exploded Classes)
         uses: actions/download-artifact@v4
         with:
-          name: jmods.device
-          path: ./jmods.device
+          name: java.device
+          path: ./java.device
 
       - name: Download Device Static Libs
         uses: actions/download-artifact@v4
@@ -47,7 +48,6 @@ jobs:
           name: libjvm-simulator
           path: ./simulator
           
-      # --- PREPARE SUPPORT FILES ---
       - name: Download and unzip mobile-support
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -55,6 +55,32 @@ jobs:
           gh release download libffi-build -p "libffi-ios.zip" -p "libffi-ios-sim.zip"
           unzip libffi-ios.zip -d libffi-ios
           unzip libffi-ios-sim.zip -d libffi-ios-sim
+
+      # --- NEW STEP: MANUALLY PACKAGE JMODS ---
+      # This fixes "cannot determine target platform" by using 'jmod' to stamp the target.
+      - name: Create Compatible JMODs
+        run: |
+          mkdir -p jmods-temp
+          chmod +x ./host-jdk/bin/jmod
+          
+          echo "Packaging exploded modules into JMODs with target 'ios-aarch64'..."
+          
+          # Iterate over each module folder (java.base, java.logging, etc.)
+          for mod_dir in ./java.device/*; do
+            if [ -d "$mod_dir" ]; then
+              mod_name=$(basename "$mod_dir")
+              echo "  - Packaging $mod_name..."
+              
+              # Use the Host 'jmod' tool to package the iOS classes
+              # --target-platform is the magic flag that fixes your error
+              ./host-jdk/bin/jmod create \
+                --class-path "$mod_dir" \
+                --target-platform ios-aarch64 \
+                "jmods-temp/$mod_name.jmod"
+            fi
+          done
+          
+          echo "JMODs created successfully."
 
       # --- BUILD XCFRAMEWORK ---
       - name: Create XCFramework
@@ -66,13 +92,11 @@ jobs:
       - name: Create JRE Bundle using Host JDK
         run: |
           echo "Generating JRE bundle..."
-          
-          # Make our custom jlink executable
           chmod +x ./host-jdk/bin/jlink
           
-          # Use Host jlink + Device JMODs
+          # FIX: Point --module-path to the NEW jmods-temp folder we just created
           ./host-jdk/bin/jlink \
-            --module-path ./jmods.device \
+            --module-path ./jmods-temp \
             --add-modules java.base,java.compiler,java.datatransfer,java.desktop,java.instrument,java.logging,java.management,java.naming,java.prefs,java.scripting,java.se,java.security.jgss,java.security.sasl,java.sql,java.transaction.xa,java.xml,jdk.attach,jdk.crypto.ec,jdk.jdi,jdk.management,jdk.net,jdk.unsupported,jdk.unsupported.desktop,jdk.zipfs,jdk.accessibility,jdk.charsets,jdk.localedata \
             --bind-services \
             --output jre_bundle \
@@ -88,9 +112,7 @@ jobs:
       - name: Compress Artifacts
         run: |
           zip -r OpenJDK.xcframework.zip OpenJDK.xcframework
-          
-          # Optional: Zip JMODs for debugging
-          cd jmods.device && zip -r ../jmods.device.zip . && cd ..
+          cd java.device && zip -r ../java.device.zip . && cd ..
 
       - name: Create snapshot release
         uses: softprops/action-gh-release@v2
@@ -100,5 +122,5 @@ jobs:
           prerelease: true
           files: |
             OpenJDK.xcframework.zip
-            jmods.device.zip
+            java.device.zip
             jre_bundle.zip

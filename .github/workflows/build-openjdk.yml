@@ -35,7 +35,7 @@ jobs:
       - name: Clone OpenJDK Mobile sources
         run: |
           git clone https://github.com/kolbyml/mobile.git
-          # Copy symbol_keeper for iOS static build
+          # Copy symbol_keeper for iOS static build (Required here)
           cp openjdk-ext/src/hotspot/symbol_keeper.cpp mobile/src/hotspot/os/bsd
           cd mobile
           git checkout master
@@ -49,40 +49,38 @@ jobs:
           --with-libffi-lib=$(realpath ../../support) \
           --with-cups-include=$(xcrun --sdk macosx --show-sdk-path)/usr/include
           
-          # BUILD JMODS + STATIC LIBS
-          # static-libs-image: builds the core .a files (libjava.a, libjvm.a)
-          # *-jmod: builds the .jmod files needed for jlink
-          # *-static-libs: builds .a files for modules that aren't in the core set
+          # FIX: Build classes (-java) and static libs (-static-libs).
+          # DO NOT build *-jmod (it crashes the linker).
           
           make LOG=cmdlines,info CONF=ios-aarch64-zero-release \
           static-libs-image \
-          java.base-jmod \
-          java.compiler-jmod \
-          java.datatransfer-jmod \
-          java.desktop-jmod \
-          java.instrument-jmod \
-          java.logging-jmod \
-          java.management-jmod \
-          java.naming-jmod \
-          java.prefs-jmod \
-          java.scripting-jmod \
-          java.se-jmod \
-          java.security.jgss-jmod \
-          java.security.sasl-jmod \
-          java.sql-jmod \
-          java.transaction.xa-jmod \
-          java.xml-jmod \
-          jdk.attach-jmod \
-          jdk.crypto.ec-jmod \
-          jdk.jdi-jmod \
-          jdk.management-jmod \
-          jdk.net-jmod \
-          jdk.unsupported-jmod \
-          jdk.unsupported.desktop-jmod \
-          jdk.zipfs-jmod \
-          jdk.accessibility-jmod \
-          jdk.charsets-jmod \
-          jdk.localedata-jmod
+          java.base-java \
+          java.compiler-java \
+          java.datatransfer-java \
+          java.desktop-java \
+          java.instrument-java \
+          java.logging-java \
+          java.management-java \
+          java.naming-java \
+          java.prefs-java \
+          java.scripting-java \
+          java.se-java \
+          java.security.jgss-java \
+          java.security.sasl-java \
+          java.sql-java \
+          java.transaction.xa-java \
+          java.xml-java \
+          jdk.attach-java \
+          jdk.crypto.ec-java \
+          jdk.jdi-java \
+          jdk.management-java \
+          jdk.net-java \
+          jdk.unsupported-java \
+          jdk.unsupported.desktop-java \
+          jdk.zipfs-java \
+          jdk.accessibility-java \
+          jdk.charsets-java \
+          jdk.localedata-java
 
       - name: Upload static libs
         uses: actions/upload-artifact@v4
@@ -93,10 +91,10 @@ jobs:
             mobile/build/ios-aarch64-zero-release/jdk/conf
             mobile/build/ios-aarch64-zero-release/jdk/include
 
-      # Upload the JMODS directory so jlink can read the target platform
-      - name: Upload jmods
+      # Upload the exploded modules (classes)
+      - name: Upload java
         uses: actions/upload-artifact@v4
         with:
-          name: jmods.device
+          name: java.device
           path: |
-            mobile/build/ios-aarch64-zero-release/images/jmods
+            mobile/build/ios-aarch64-zero-release/jdk/modules

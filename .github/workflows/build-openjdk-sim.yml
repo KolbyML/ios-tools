@@ -50,36 +50,36 @@ jobs:
           --with-extra-cxxflags="-target arm64-apple-ios-simulator -mios-simulator-version-min=18.2" \
           --with-cups-include=$(xcrun --sdk macosx --show-sdk-path)/usr/include
           
-          # Same targets as device
+          # FIX: Same targets as device
           make LOG=cmdlines,info CONF=iossim-aarch64-zero-release \
           static-libs-image \
-          java.base-jmod \
-          java.compiler-jmod \
-          java.datatransfer-jmod \
-          java.desktop-jmod \
-          java.instrument-jmod \
-          java.logging-jmod \
-          java.management-jmod \
-          java.naming-jmod \
-          java.prefs-jmod \
-          java.scripting-jmod \
-          java.se-jmod \
-          java.security.jgss-jmod \
-          java.security.sasl-jmod \
-          java.sql-jmod \
-          java.transaction.xa-jmod \
-          java.xml-jmod \
-          jdk.attach-jmod \
-          jdk.crypto.ec-jmod \
-          jdk.jdi-jmod \
-          jdk.management-jmod \
-          jdk.net-jmod \
-          jdk.unsupported-jmod \
-          jdk.unsupported.desktop-jmod \
-          jdk.zipfs-jmod \
-          jdk.accessibility-jmod \
-          jdk.charsets-jmod \
-          jdk.localedata-jmod
+          java.base-java \
+          java.compiler-java \
+          java.datatransfer-java \
+          java.desktop-java \
+          java.instrument-java \
+          java.logging-java \
+          java.management-java \
+          java.naming-java \
+          java.prefs-java \
+          java.scripting-java \
+          java.se-java \
+          java.security.jgss-java \
+          java.security.sasl-java \
+          java.sql-java \
+          java.transaction.xa-java \
+          java.xml-java \
+          jdk.attach-java \
+          jdk.crypto.ec-java \
+          jdk.jdi-java \
+          jdk.management-java \
+          jdk.net-java \
+          jdk.unsupported-java \
+          jdk.unsupported.desktop-java \
+          jdk.zipfs-java \
+          jdk.accessibility-java \
+          jdk.charsets-java \
+          jdk.localedata-java
 
       - name: Upload static libs
         uses: actions/upload-artifact@v4
@@ -90,9 +90,9 @@ jobs:
             mobile/build/iossim-aarch64-zero-release/jdk/conf
             mobile/build/iossim-aarch64-zero-release/jdk/include
 
-      - name: Upload jmods
+      - name: Upload java
         uses: actions/upload-artifact@v4
         with:
-          name: jmods.simulator
+          name: java.simulator
           path: |
-            mobile/build/iossim-aarch64-zero-release/images/jmods
+            mobile/build/iossim-aarch64-zero-release/jdk/modules
