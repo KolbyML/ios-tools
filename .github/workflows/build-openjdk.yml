@@ -57,10 +57,15 @@ jobs:
           java.sql-java \
           java.sql.rowset-java \
           java.transaction.xa-java \
-          jdk.charsets-java \
           jdk.unsupported-java \
           jdk.zipfs-java \
           jdk.crypto.ec-java \
+          jdk.charsets-java \
+          jdk.localedata-java \
+          java.scripting-java \
+          java.compiler-java \
+          java.se-java \
+          jdk.unsupported.desktop-java
 
       - name: Upload device artifact
         uses: actions/upload-artifact@v4
