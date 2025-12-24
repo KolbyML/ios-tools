@@ -49,19 +49,28 @@ jobs:
           --with-libffi-lib=$(realpath ../../support) \
           --with-cups-include=$(xcrun --sdk macosx --show-sdk-path)/usr/include
 
-      # --- PATCH STEP: Force ALL required modules ---
-      # We append the full list to ensure nothing is missed (duplicates are fine).
+      # --- PATCH STEP: APPEND MODULES ---
       - name: Patch Static Libs Makefile
         run: |
           cd mobile
-          find make -name "StaticLibs.gmk" -exec sed -i '' 's/STATIC_LIBS_MODULES := .*/& java.compiler java.datatransfer java.desktop java.instrument java.logging java.management java.naming java.prefs java.scripting java.se java.security.jgss java.security.sasl java.sql java.transaction.xa java.xml jdk.attach jdk.crypto.ec jdk.jdi jdk.management jdk.net jdk.unsupported jdk.unsupported.desktop jdk.zipfs jdk.accessibility jdk.charsets jdk.localedata/' {} +
           
-          echo "Patch applied."
+          # 1. Find the file. It is almost certainly make/StaticLibs.gmk
+          # If not found there, we look for any file defining STATIC_LIBS_MODULES
+          TARGET_FILE=$(grep -l "STATIC_LIBS_MODULES" make/*.gmk 2>/dev/null || echo "make/StaticLibs.gmk")
+          
+          echo "Patching $TARGET_FILE with extra modules..."
+          
+          # 2. Append the modules using +=. This forces them to be added to the list.
+          # We include the full list just to be safe.
+          echo "" >> "$TARGET_FILE"
+          echo "STATIC_LIBS_MODULES += java.compiler java.datatransfer java.desktop java.instrument java.logging java.management java.naming java.prefs java.scripting java.se java.security.jgss java.security.sasl java.sql java.transaction.xa java.xml jdk.attach jdk.crypto.ec jdk.jdi jdk.management jdk.net jdk.unsupported jdk.unsupported.desktop jdk.zipfs jdk.accessibility jdk.charsets jdk.localedata" >> "$TARGET_FILE"
+          
+          # 3. Print the last few lines to verify the patch in the logs
+          tail -n 5 "$TARGET_FILE"
 
       - name: Build Static Image
         run: |
           cd mobile
-          # No MODULES variable here; we rely on the patched makefile
           make LOG=cmdlines,info CONF=ios-aarch64-zero-release static-libs-image
 
       - name: Upload device artifact
