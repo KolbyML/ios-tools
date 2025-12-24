@@ -35,6 +35,7 @@ jobs:
       - name: Clone OpenJDK Mobile sources
         run: |
           git clone https://github.com/kolbyml/mobile.git
+          # Copy symbol_keeper for iOS static build
           cp openjdk-ext/src/hotspot/symbol_keeper.cpp mobile/src/hotspot/os/bsd
           cd mobile
           git checkout master
@@ -48,26 +49,42 @@ jobs:
           --with-libffi-lib=$(realpath ../../support) \
           --with-cups-include=$(xcrun --sdk macosx --show-sdk-path)/usr/include
           
-          # FIX: Precise targets.
-          # - Pure Java modules: build only the <name>-java target.
-          # - Native modules (zipfs, crypto.ec): build <name>-java AND <name>-static-libs.
+          # BUILD JMODS + STATIC LIBS
+          # static-libs-image: builds the core .a files (libjava.a, libjvm.a)
+          # *-jmod: builds the .jmod files needed for jlink
+          # *-static-libs: builds .a files for modules that aren't in the core set
           
           make LOG=cmdlines,info CONF=ios-aarch64-zero-release \
           static-libs-image \
-          java.sql-java \
-          java.sql.rowset-java \
-          java.transaction.xa-java \
-          jdk.unsupported-java \
-          jdk.zipfs-java \
-          jdk.crypto.ec-java \
-          jdk.charsets-java \
-          jdk.localedata-java \
-          java.scripting-java \
-          java.compiler-java \
-          java.se-java \
-          jdk.unsupported.desktop-java
+          java.base-jmod \
+          java.compiler-jmod \
+          java.datatransfer-jmod \
+          java.desktop-jmod \
+          java.instrument-jmod \
+          java.logging-jmod \
+          java.management-jmod \
+          java.naming-jmod \
+          java.prefs-jmod \
+          java.scripting-jmod \
+          java.se-jmod \
+          java.security.jgss-jmod \
+          java.security.sasl-jmod \
+          java.sql-jmod \
+          java.transaction.xa-jmod \
+          java.xml-jmod \
+          jdk.attach-jmod \
+          jdk.crypto.ec-jmod \
+          jdk.jdi-jmod \
+          jdk.management-jmod \
+          jdk.net-jmod \
+          jdk.unsupported-jmod \
+          jdk.unsupported.desktop-jmod \
+          jdk.zipfs-jmod \
+          jdk.accessibility-jmod \
+          jdk.charsets-jmod \
+          jdk.localedata-jmod
 
-      - name: Upload device artifact
+      - name: Upload static libs
         uses: actions/upload-artifact@v4
         with:
           name: libjvm-device
@@ -76,9 +93,10 @@ jobs:
             mobile/build/ios-aarch64-zero-release/jdk/conf
             mobile/build/ios-aarch64-zero-release/jdk/include
 
-      - name: Upload java
+      # Upload the JMODS directory so jlink can read the target platform
+      - name: Upload jmods
         uses: actions/upload-artifact@v4
         with:
-          name: java.device
+          name: jmods.device
           path: |
-            mobile/build/ios-aarch64-zero-release/jdk/modules
+            mobile/build/ios-aarch64-zero-release/images/jmods

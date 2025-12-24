@@ -28,14 +28,13 @@ jobs:
         run: |
           git clone https://github.com/kolbyml/mobile.git
           
-          # CRITICAL FIX: Do NOT copy symbol_keeper.cpp here.
-          # That file is ONLY for static iOS builds.
+          # NOTE: We intentionally DO NOT copy symbol_keeper.cpp here.
+          # It is only for the static iOS builds and causes linker errors on macOS.
           
           cd mobile
           git checkout master
           
           # Configure for macOS (Host)
-          # We use the local JVM ($JAVA_HOME) as the bootstrap
           bash configure \
             --with-conf-name=macos-host \
             --with-boot-jdk=$JAVA_HOME \

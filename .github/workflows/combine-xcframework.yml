@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  # 1. Trigger the builds in parallel
+  # Trigger all 3 builds in parallel
   build-openjdk:
     uses: ./.github/workflows/build-openjdk.yml
 
@@ -14,7 +14,6 @@ jobs:
   build-host-jdk:
     uses: ./.github/workflows/build-host-jdk.yml
 
-  # 2. Combine them once ALL are finished
   combine:
     needs: [ build-openjdk, build-openjdk-sim, build-host-jdk ]
     runs-on: macos-latest
@@ -24,32 +23,30 @@ jobs:
 
       # --- DOWNLOAD ARTIFACTS ---
       
-      - name: Download Host JDK (The Tool)
+      - name: Download Host JDK
         uses: actions/download-artifact@v4
         with:
           name: host-jdk
           path: ./host-jdk
 
-      - name: Download java.device (The Classes)
+      - name: Download Device JMODs
         uses: actions/download-artifact@v4
         with:
-          name: java.device
-          path: ./java.device
+          name: jmods.device
+          path: ./jmods.device
 
-      - name: Download libjvm-device (The Static Libs)
+      - name: Download Device Static Libs
         uses: actions/download-artifact@v4
         with:
           name: libjvm-device
           path: ./device
 
-      - name: Download libjvm-simulator
+      - name: Download Simulator Static Libs
         uses: actions/download-artifact@v4
         with:
           name: libjvm-simulator
           path: ./simulator
           
-      # (Optional) Download Simulator Java if you need it, though usually device classes suffice
-      
       # --- PREPARE SUPPORT FILES ---
       - name: Download and unzip mobile-support
         env:
@@ -70,13 +67,12 @@ jobs:
         run: |
           echo "Generating JRE bundle..."
           
-          # 1. Make the downloaded jlink executable
+          # Make our custom jlink executable
           chmod +x ./host-jdk/bin/jlink
           
-          # 2. Run it! 
-          # We use the 'jlink' we just built (Java 27) to pack the classes we just built (Java 27)
+          # Use Host jlink + Device JMODs
           ./host-jdk/bin/jlink \
-            --module-path ./java.device \
+            --module-path ./jmods.device \
             --add-modules java.base,java.compiler,java.datatransfer,java.desktop,java.instrument,java.logging,java.management,java.naming,java.prefs,java.scripting,java.se,java.security.jgss,java.security.sasl,java.sql,java.transaction.xa,java.xml,jdk.attach,jdk.crypto.ec,jdk.jdi,jdk.management,jdk.net,jdk.unsupported,jdk.unsupported.desktop,jdk.zipfs,jdk.accessibility,jdk.charsets,jdk.localedata \
             --bind-services \
             --output jre_bundle \
@@ -92,7 +88,9 @@ jobs:
       - name: Compress Artifacts
         run: |
           zip -r OpenJDK.xcframework.zip OpenJDK.xcframework
-          cd java.device && zip -r ../java.device.zip . && cd ..
+          
+          # Optional: Zip JMODs for debugging
+          cd jmods.device && zip -r ../jmods.device.zip . && cd ..
 
       - name: Create snapshot release
         uses: softprops/action-gh-release@v2
@@ -102,5 +100,5 @@ jobs:
           prerelease: true
           files: |
             OpenJDK.xcframework.zip
-            java.device.zip
+            jmods.device.zip
             jre_bundle.zip
