@@ -39,6 +39,7 @@ jobs:
           cd mobile
           git checkout master
           
+          # 1. Configure
           bash configure \
           --with-conf-name=ios-aarch64-zero-release \
           --disable-warnings-as-errors \
@@ -47,14 +48,21 @@ jobs:
           --with-libffi-include=$(realpath ../../support/include/ffi) \
           --with-libffi-lib=$(realpath ../../support) \
           --with-cups-include=$(xcrun --sdk macosx --show-sdk-path)/usr/include
+
+      # --- PATCH STEP: Force ALL required modules ---
+      # We append the full list to ensure nothing is missed (duplicates are fine).
+      - name: Patch Static Libs Makefile
+        run: |
+          cd mobile
+          find make -name "StaticLibs.gmk" -exec sed -i '' 's/STATIC_LIBS_MODULES := .*/& java.compiler java.datatransfer java.desktop java.instrument java.logging java.management java.naming java.prefs java.scripting java.se java.security.jgss java.security.sasl java.sql java.transaction.xa java.xml jdk.attach jdk.crypto.ec jdk.jdi jdk.management jdk.net jdk.unsupported jdk.unsupported.desktop jdk.zipfs jdk.accessibility jdk.charsets jdk.localedata/' {} +
           
-          # FIX: Inline modules directly in the make command
-          make LOG=cmdlines,info CONF=ios-aarch64-zero-release static-libs-image \
-          java.base java.compiler java.datatransfer java.desktop java.instrument java.logging \
-          java.management java.naming java.prefs java.scripting java.se java.security.jgss \
-          java.security.sasl java.sql java.transaction.xa java.xml jdk.attach jdk.crypto.ec \
-          jdk.jdi jdk.management jdk.net jdk.unsupported jdk.unsupported.desktop jdk.zipfs \
-          jdk.accessibility jdk.charsets jdk.localedata
+          echo "Patch applied."
+
+      - name: Build Static Image
+        run: |
+          cd mobile
+          # No MODULES variable here; we rely on the patched makefile
+          make LOG=cmdlines,info CONF=ios-aarch64-zero-release static-libs-image
 
       - name: Upload device artifact
         uses: actions/upload-artifact@v4
