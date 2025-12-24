@@ -10,11 +10,9 @@ jobs:
     steps:
       - name: 'Install toolchain and dependencies'
         run: |
-          # Run Homebrew installation and xcode-select
           brew install libffi
           brew install autoconf make
           sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
-          # This will make GNU make available as 'make' and not only as 'gmake' 
           echo '/usr/local/opt/make/libexec/gnubin' >> $GITHUB_PATH
 
       - name: Checkout builder repo
@@ -33,23 +31,14 @@ jobs:
           gh release download libffi-build --pattern "libffi-ios.zip"
           mkdir -p ../support
           unzip libffi-ios.zip -d ../support
-          echo "unzip done"
-          ls -l ..
-          ls -l ../support
-          pwd
-          echo "$(realpath ../support)"
 
       - name: Clone OpenJDK Mobile sources
         run: |
           git clone https://github.com/kolbyml/mobile.git
           cp openjdk-ext/src/hotspot/symbol_keeper.cpp mobile/src/hotspot/os/bsd
           cd mobile
-          # optionally checkout a specific branch or tag
           git checkout master
-          pwd
-          ls -l .
-          ls -l ..
-          ls -l ../../support
+          
           bash configure \
           --with-conf-name=ios-aarch64-zero-release \
           --disable-warnings-as-errors \
@@ -58,21 +47,10 @@ jobs:
           --with-libffi-include=$(realpath ../../support/include/ffi) \
           --with-libffi-lib=$(realpath ../../support) \
           --with-cups-include=$(xcrun --sdk macosx --show-sdk-path)/usr/include
-          make LOG=cmdlines,info CONF=ios-aarch64-zero-release static-libs-image
-
-      - name: List current directory
-        run: |
-          echo "Current directory: $(pwd)"
-          ls -la
-
-      - name: List mobile directory
-        run: |
-          if [ -d "mobile" ]; then
-            echo "'mobile' directory exists, listing contents:"
-            ls -la mobile
-          else
-            echo "'mobile' directory does not exist!"
-          fi
+          
+          # Explicitly build the modules required for the JRE bundle
+          make LOG=cmdlines,info CONF=ios-aarch64-zero-release static-libs-image \
+          MODULES="java.base java.compiler java.datatransfer java.desktop java.instrument java.logging java.management java.naming java.prefs java.scripting java.se java.security.jgss java.security.sasl java.sql java.transaction.xa java.xml jdk.attach jdk.crypto.ec jdk.jdi jdk.management jdk.net jdk.unsupported jdk.unsupported.desktop jdk.zipfs jdk.accessibility jdk.charsets jdk.localedata"
 
       - name: Upload device artifact
         uses: actions/upload-artifact@v4
@@ -82,7 +60,6 @@ jobs:
             mobile/build/ios-aarch64-zero-release/images/static-libs/lib
             mobile/build/ios-aarch64-zero-release/jdk/conf
             mobile/build/ios-aarch64-zero-release/jdk/include
-
 
       - name: Upload java
         uses: actions/upload-artifact@v4
