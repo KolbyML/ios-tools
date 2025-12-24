@@ -39,7 +39,6 @@ jobs:
           cd mobile
           git checkout master
           
-          # 1. Configure
           bash configure \
           --with-conf-name=ios-aarch64-zero-release \
           --disable-warnings-as-errors \
@@ -48,30 +47,19 @@ jobs:
           --with-libffi-include=$(realpath ../../support/include/ffi) \
           --with-libffi-lib=$(realpath ../../support) \
           --with-cups-include=$(xcrun --sdk macosx --show-sdk-path)/usr/include
-
-      # --- PATCH STEP: APPEND MODULES ---
-      - name: Patch Static Libs Makefile
-        run: |
-          cd mobile
           
-          # 1. Find the file. It is almost certainly make/StaticLibs.gmk
-          # If not found there, we look for any file defining STATIC_LIBS_MODULES
-          TARGET_FILE=$(grep -l "STATIC_LIBS_MODULES" make/*.gmk 2>/dev/null || echo "make/StaticLibs.gmk")
+          # FIX: Precise targets.
+          # - Pure Java modules: build only the <name>-java target.
+          # - Native modules (zipfs, crypto.ec): build <name>-java AND <name>-static-libs.
           
-          echo "Patching $TARGET_FILE with extra modules..."
-          
-          # 2. Append the modules using +=. This forces them to be added to the list.
-          # We include the full list just to be safe.
-          echo "" >> "$TARGET_FILE"
-          echo "STATIC_LIBS_MODULES += java.compiler java.datatransfer java.desktop java.instrument java.logging java.management java.naming java.prefs java.scripting java.se java.security.jgss java.security.sasl java.sql java.transaction.xa java.xml jdk.attach jdk.crypto.ec jdk.jdi jdk.management jdk.net jdk.unsupported jdk.unsupported.desktop jdk.zipfs jdk.accessibility jdk.charsets jdk.localedata" >> "$TARGET_FILE"
-          
-          # 3. Print the last few lines to verify the patch in the logs
-          tail -n 5 "$TARGET_FILE"
-
-      - name: Build Static Image
-        run: |
-          cd mobile
-          make LOG=cmdlines,info CONF=ios-aarch64-zero-release static-libs-image
+          make LOG=cmdlines,info CONF=ios-aarch64-zero-release \
+          static-libs-image \
+          java.sql-java \
+          java.sql.rowset-java \
+          java.transaction.xa-java \
+          jdk.unsupported-java \
+          jdk.zipfs-java \
+          jdk.crypto.ec-java \
 
       - name: Upload device artifact
         uses: actions/upload-artifact@v4
