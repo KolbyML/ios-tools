@@ -83,6 +83,7 @@ jobs:
         run: |
           echo "Generating JRE bundle..."
           chmod +x ./host-jdk/bin/jlink
+          chmod +x ./host-jdk/bin/jimage
           
           # FIX 1: Removed --strip-debug (Likely corruption source)
           # FIX 2: Forced --compress=0 (No compression)
