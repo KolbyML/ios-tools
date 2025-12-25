@@ -56,37 +56,27 @@ jobs:
           unzip libffi-ios.zip -d libffi-ios
           unzip libffi-ios-sim.zip -d libffi-ios-sim
 
-      # --- NEW STEP: MANUALLY PACKAGE JMODS ---
-      # This fixes "cannot determine target platform" by using 'jmod' to stamp the target.
+      # --- PACKAGE JMODS ---
       - name: Create Compatible JMODs
         run: |
           mkdir -p jmods-temp
           chmod +x ./host-jdk/bin/jmod
           
-          echo "Packaging exploded modules into JMODs with target 'ios-aarch64'..."
+          echo "Packaging exploded modules into JMODs..."
           
-          # Iterate over each module folder (java.base, java.logging, etc.)
+          # Iterate over each module folder
           for mod_dir in ./java.device/*; do
             if [ -d "$mod_dir" ]; then
               mod_name=$(basename "$mod_dir")
               echo "  - Packaging $mod_name..."
               
-              # Use the Host 'jmod' tool to package the iOS classes
-              # --target-platform is the magic flag that fixes your error
+              # Use the Host 'jmod' tool
               ./host-jdk/bin/jmod create \
                 --class-path "$mod_dir" \
                 --target-platform ios-aarch64 \
                 "jmods-temp/$mod_name.jmod"
             fi
           done
-          
-          echo "JMODs created successfully."
-
-      # --- BUILD XCFRAMEWORK ---
-      - name: Create XCFramework
-        run: |
-          chmod +x .github/scripts/build-xcframework.sh
-          .github/scripts/build-xcframework.sh
 
       # --- GENERATE JRE BUNDLE ---
       - name: Create JRE Bundle using Host JDK
@@ -94,19 +84,37 @@ jobs:
           echo "Generating JRE bundle..."
           chmod +x ./host-jdk/bin/jlink
           
-          # FIX: Point --module-path to the NEW jmods-temp folder we just created
+          # FIX 1: Removed --strip-debug (Likely corruption source)
+          # FIX 2: Forced --compress=0 (No compression)
           ./host-jdk/bin/jlink \
             --module-path ./jmods-temp \
             --add-modules java.base,java.compiler,java.datatransfer,java.desktop,java.instrument,java.logging,java.management,java.naming,java.prefs,java.scripting,java.se,java.security.jgss,java.security.sasl,java.sql,java.transaction.xa,java.xml,jdk.attach,jdk.crypto.ec,jdk.jdi,jdk.management,jdk.net,jdk.unsupported,jdk.unsupported.desktop,jdk.zipfs,jdk.accessibility,jdk.charsets,jdk.localedata \
             --bind-services \
             --output jre_bundle \
-            --strip-debug \
             --no-man-pages \
             --no-header-files \
-            --compress=2
+            --compress=0
             
+          echo "Verifying generated modules file..."
+          if [ -f "jre_bundle/lib/modules" ]; then
+             echo "modules file exists. Size:"
+             ls -lh jre_bundle/lib/modules
+             
+             # Optional: Run verification on the runner itself
+             ./host-jdk/bin/jimage verify jre_bundle/lib/modules
+          else
+             echo "ERROR: modules file was not generated!"
+             exit 1
+          fi
+
           echo "Zipping JRE bundle..."
           zip -r jre_bundle.zip jre_bundle
+
+      # --- BUILD XCFRAMEWORK ---
+      - name: Create XCFramework
+        run: |
+          chmod +x .github/scripts/build-xcframework.sh
+          .github/scripts/build-xcframework.sh
 
       # --- PACK AND UPLOAD ---
       - name: Compress Artifacts
